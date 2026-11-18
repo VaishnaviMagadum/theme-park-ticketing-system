@@ -1,6 +1,6 @@
 FROM php:8.1-apache
 
-# Install MariaDB server and client
+# Install MariaDB server, client, and utility tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
     mariadb-server \
     mariadb-client \
@@ -23,7 +23,7 @@ COPY . /var/www/html/
 RUN dos2unix /var/www/html/entrypoint.sh \
     && chmod +x /var/www/html/entrypoint.sh
 
-# Initialize MariaDB data directory and preload database during build
+# Pre-initialize MariaDB during Docker build
 RUN mkdir -p /var/run/mysqld /var/lib/mysql \
     && chown -R mysql:mysql /var/run/mysqld /var/lib/mysql \
     && mysql_install_db --user=mysql --datadir=/var/lib/mysql \
@@ -31,6 +31,7 @@ RUN mkdir -p /var/run/mysqld /var/lib/mysql \
     && for i in $(seq 1 30); do mysqladmin ping --silent 2>/dev/null && break || sleep 1; done \
     && mysql -e "CREATE DATABASE IF NOT EXISTS tpts_db;" \
     && mysql tpts_db < /var/www/html/database/tpts_db.sql \
+    && mysql -e "CREATE USER IF NOT EXISTS 'park_user'@'%' IDENTIFIED BY 'park123'; GRANT ALL PRIVILEGES ON *.* TO 'park_user'@'%' WITH GRANT OPTION; FLUSH PRIVILEGES;" \
     && mysqladmin shutdown
 
 # Ensure web ownership
