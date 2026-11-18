@@ -22,14 +22,17 @@ done
 
 # Fix MariaDB authentication so Apache/PHP (www-data) can connect
 echo "Configuring database permissions..."
-mysql --protocol=socket -u root << 'EOSQL'
+mysql --protocol=socket -u root << 'EOSQL' || true
 CREATE DATABASE IF NOT EXISTS tpts_db;
-UPDATE mysql.user SET plugin='mysql_native_password', authentication_string='' WHERE User='root';
-CREATE USER IF NOT EXISTS 'root'@'127.0.0.1' IDENTIFIED BY '';
 CREATE USER IF NOT EXISTS 'park_user'@'%' IDENTIFIED BY 'park123';
-GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' WITH GRANT OPTION;
-GRANT ALL PRIVILEGES ON *.* TO 'root'@'127.0.0.1' WITH GRANT OPTION;
+CREATE USER IF NOT EXISTS 'park_user'@'localhost' IDENTIFIED BY 'park123';
+CREATE USER IF NOT EXISTS 'park_user'@'127.0.0.1' IDENTIFIED BY 'park123';
 GRANT ALL PRIVILEGES ON *.* TO 'park_user'@'%' WITH GRANT OPTION;
+GRANT ALL PRIVILEGES ON *.* TO 'park_user'@'localhost' WITH GRANT OPTION;
+GRANT ALL PRIVILEGES ON *.* TO 'park_user'@'127.0.0.1' WITH GRANT OPTION;
+CREATE USER IF NOT EXISTS 'root'@'127.0.0.1' IDENTIFIED BY '';
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'127.0.0.1' WITH GRANT OPTION;
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' WITH GRANT OPTION;
 FLUSH PRIVILEGES;
 EOSQL
 
