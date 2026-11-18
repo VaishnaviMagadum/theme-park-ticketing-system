@@ -4,6 +4,7 @@ FROM php:8.1-apache
 RUN apt-get update && apt-get install -y --no-install-recommends \
     mariadb-server \
     mariadb-client \
+    dos2unix \
     && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions required for MySQL
@@ -18,10 +19,21 @@ WORKDIR /var/www/html
 # Copy project files
 COPY . /var/www/html/
 
-# Grant execute permissions on entrypoint
-RUN chmod +x /var/www/html/entrypoint.sh
+# Fix line endings and grant execute permissions on entrypoint
+RUN dos2unix /var/www/html/entrypoint.sh \
+    && chmod +x /var/www/html/entrypoint.sh
 
-# Fix web ownership
+# Initialize MariaDB data directory and preload database during build
+RUN mkdir -p /var/run/mysqld /var/lib/mysql \
+    && chown -R mysql:mysql /var/run/mysqld /var/lib/mysql \
+    && mysql_install_db --user=mysql --datadir=/var/lib/mysql \
+    && (mysqld_safe --skip-syslog &) \
+    && for i in $(seq 1 30); do mysqladmin ping --silent 2>/dev/null && break || sleep 1; done \
+    && mysql -e "CREATE DATABASE IF NOT EXISTS tpts_db;" \
+    && mysql tpts_db < /var/www/html/database/tpts_db.sql \
+    && mysqladmin shutdown
+
+# Ensure web ownership
 RUN chown -R www-data:www-data /var/www/html
 
 EXPOSE 80 10000
